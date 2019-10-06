@@ -1,0 +1,20 @@
+There are two sample programs included in this folder that show how to use
+some of the tools in Apache OpenNLP toolkit:
+
+   SentenceDetectionME.java: split a body of text into a sequence of sentences
+
+   POSTaggingMEDemo.java: associate a sequence of words with their POS tags
+
+   TokenizerMEProbs.java: tokenize text and convert words to their stems 
+
+To build all the programs, simply type "make", and to rebuild, type "make clean" and 
+then "make".
+
+Examples for testing the related programs:
+
+    java -cp ../opennlp-tools-1.9.1.jar:. SentenceDetectionME sample.txt > sample.splitted
+
+    java -cp ../opennlp-tools-1.9.1.jar:. POSTaggingMEDem sample.splitted > sample.tagged
+ 
+    java -cp ../opennlp-tools-1.9.1.jar:. TokenizerMEProbs sample.splitted > sample.stemmed
+ 
