@@ -1,20 +1,25 @@
 JAVAC=javac
 CLASSPATH=opennlp-tools-1.9.1.jar:.
+FILE=data/sample
 
-all: token
+all: split token preprocessor
 
 %.class: %.java
 	$(JAVAC) -cp $(CLASSPATH) $^
 
-processDoc: token runToken
+processDoc: runSplit runToken runPre
 
-split:
-	java -cp opennlp-tools-1.9.1.jar:. SentenceDetectionME sample.txt > sample.splitted
-
+preprocessor: Preprocessor.class
+split: SentenceDetectionME.class
 token: gen-jflex Token.class Lexer.class Scanner.class
 
+
+runSplit: 
+	java -cp opennlp-tools-1.9.1.jar:. SentenceDetectionME $(FILE).txt > $(FILE).split
 runToken:
-	java Scanner test.txt > test.tok
+	java Scanner $(FILE).txt > $(FILE).tok
+runPre:
+	java Preprocessor $(FILE).tok > $(FILE).pre
 
 #Tokenization
 Lexer.java: token.flex
@@ -25,4 +30,5 @@ gen-jflex:
 	jflex token.flex
 
 clean:
-	rm -f *.class *~ Lexer.java Scanner
+	rm -f *.class *~ *.tok *.split *.pre Lexer.java Scanner SentenceDetectionME Preprocessor \ 
+	rm data/*.tok data/*.split data/*.pre
