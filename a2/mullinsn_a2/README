@@ -1,0 +1,101 @@
+
+Used OpenNLP sample code as a foundation for 
+
+/****************************************
+ * Nolan Mullins
+ * 0939720
+ * 2019-10-06
+ * 4500 - NLP - A1
+ ****************************************/
+
+
+**********************************
+Problem
+**********************************
+    This program will a file of documents and pre process and analyze 
+them in preparation of for translation. There are 4 separate components 
+of this project. First a sentence splitter that will split bodies of text 
+into a single sentence per line format. Secondly a tokenizer that will 
+split all words and symbols in a body of text into easier to process 
+tokens. Thirdly a tagging tool to assign part of speech tags to each 
+token. Lastly an analysis tool that will give a general overview of 
+the final data. I used the processDoc command from the make file to 
+provide a basic unit testing as I'd compare the analysis output after 
+smaller changes to verify that everything was still working as before.
+
+**********************************
+Known Issues
+**********************************
+-Complicated possessive case where it's hard to tell if a 's is acting 
+as a plural or possessive modifier. 
+
+**********************************
+Guide
+**********************************
+
+*******
+Compile
+*******
+type: make
+
+output: 
+SentenceDetectionME.class
+Scanner.class
+Lexar.java
+Laxar.class
+Token.class
+POSTaggingMEDemo.class
+Analysis.class
+
+*******
+Running
+*******
+Sentence splitter
+java -cp opennlp-tools-1.9.1.jar:. SentenceDetectionME <input file> > <output file>
+
+Tokenizer
+java Scanner <input file> > <output file>
+
+Tagger
+java -cp opennlp-tools-1.9.1.jar:. POSTaggingMEDemo <input file> > <output file>
+
+Analysis
+java Analysis <input file> > <output file>
+
+Example:
+make processDoc 
+this command will fully process a file called "sample.txt"
+
+**********************************
+Test plan
+**********************************
+    I initially tested against the sample data set provided as it is quite large 
+and provides a lot unique cases. After working through the sample data set I built 
+my own test file with more unique cases mentioned in the outline and other combinations 
+I came up with such as various cases of hyphenated words, this is why I went with the 
+approach to tokenize only the english hyphenated words such as 're and 've. I also 
+tested against different combinations of letters and symbols. Some of the more 
+creative combinations I tested using regex101.com as it shows exactly what the regex 
+was recognizing as I made changes. This tool was invaluable in testing the regex 
+implementation. For the other files I mainly tested with the larger sample data set 
+as the splitter and tagger both are using OpenNLP which did the heavy lifting. I 
+compared the output of the OpenNLP to the examples provided by Fei.  
+
+
+
+**********************************
+Improvements
+**********************************
+Improvements could be made to when to the splitter in order to detect more 
+complicated scenarios such as: 
+    "Bob's" vs "He's" here its hard to detect between plural and possessive.
+    "Thomas'" This is plural but harder to detect 
+
+**********************************
+Acknowledgements
+**********************************
+I used the sample code provided as a base foundation to build this project on. 
+Samples used:
+    Scanner.java
+    POSTaggingMEDemo.java
+    SentenceDetectionME.java
