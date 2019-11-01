@@ -38,20 +38,19 @@ WhiteSpace     = [ \t\f]
 //Suffix'd words
 '(ve|re)                    {return new Token(Token.WORD, yytext(), yyline, yycolumn);}
 //Negative numbers
-[-][0-9]+[.]*[0-9]*         {return new Token(Token.NEG_NUM, yytext(), yyline, yycolumn);}
-[0-9]+[.][0-9]+             {return new Token(Token.NUM, yytext(), yyline, yycolumn);}
-[0-9]+                      {return new Token(Token.NUM, yytext(), yyline, yycolumn);}
-
-//Weird 
-//( [-']|[-'] )               { return new Token(Token.OTHER, yytext(), yyline, yycolumn); }
-([a-zA-Z]['’])*([a-zA-z|0-9]+)([-]*[a-zA-z|0-9]+)*(['’][sS])* { return new Token(Token.WORD, yytext(), yyline, yycolumn); }
-([A-Z].)+                   { return new Token(Token.WORD, yytext(), yyline, yycolumn); }
-
+[-][0-9]+[.][0-9]+          {return new Token(Token.NUM, yytext(), yyline, yycolumn);}
+[+]*[0-9]+[.][0-9]+         {return new Token(Token.NUM, yytext(), yyline, yycolumn);}
+[+-]*[0-9]+                 {return new Token(Token.NUM, yytext(), yyline, yycolumn);}
 {WhiteSpace}+               { /* skip whitespace */ }   
+
+([a-zA-Z]['’])*([a-zA-z|0-9]+)([-]*[a-zA-z|0-9]+)*(['’][sS])*   { return new Token(Token.WORD, yytext(), yyline, yycolumn); }
+([A-Z][.])+                   { return new Token(Token.WORD, yytext(), yyline, yycolumn); }
+([A-Z][.])+[A-Z]                   { return new Token(Token.WORD, yytext(), yyline, yycolumn); }
+
 "{"[^\}]*"}"                { /* skip comments */ }
 
 //punctuation
-[.!?,;:'\(\)\[\]\"’]         { return new Token(Token.PUNCTUATION, yytext(), yyline, yycolumn); }
+[.!?,;:'\(\)\[\]\"’-]         { return new Token(Token.PUNCTUATION, yytext(), yyline, yycolumn); }
 //New lines
 [\n]                        { return new Token(Token.NL, yytext(), yyline, yycolumn); }
 .                           { return new Token(Token.OTHER, yytext(), yyline, yycolumn); }

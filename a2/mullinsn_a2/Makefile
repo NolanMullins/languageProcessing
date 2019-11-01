@@ -1,6 +1,6 @@
 JAVAC=javac
 CLASSPATH=opennlp-tools-1.9.1.jar:.
-FILE=data/sample
+FILE=data/test
 
 all: split token preprocessor
 
@@ -14,6 +14,7 @@ split: SentenceDetectionME.class
 token: gen-jflex Token.class Lexer.class Scanner.class
 
 
+#Run with a sample file
 runSplit: 
 	java -cp opennlp-tools-1.9.1.jar:. SentenceDetectionME $(FILE).txt > $(FILE).split
 runToken:

@@ -6,12 +6,12 @@ class Token {
     public final static int ERROR = 0;
     public final static int OTHER = 1;
     public final static int NL = 2;
-    public final static int LABEL = 3;
     public final static int DELIMITER = 4;
     public final static int NEG_NUM = 5;
     public final static int PUNCTUATION = 6;
     public final static int NUM = 7;
-    public final static int WORD = 8;
+    public final static int LABEL = 8;
+    public final static int WORD = 9;
 
     public int m_type;
     public String m_value;
