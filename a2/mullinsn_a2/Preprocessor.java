@@ -7,12 +7,15 @@ import java.io.BufferedReader;
 import java.io.FileInputStream; 
 import java.io.InputStream;  
 import java.util.HashMap;
+import opennlp.tools.stemmer.PorterStemmer;
 
 public class Preprocessor {
     private Lexer scanner = null;
+    PorterStemmer stemmer = null;
 
     public Preprocessor(Lexer lexer) {
         scanner = lexer;
+        stemmer = new PorterStemmer();
     }
 
     //Gets the next token from the scanner and checks the hyphenated case
@@ -27,8 +30,9 @@ public class Preprocessor {
             return "";
         if (str.contains("$DOC") || str.contains("$TEXT") || str.contains("$TITLE"))
             return str;
-        //TODO stemming
-        return str.toLowerCase();
+        if (str.contains(" "))
+            return stemmer.stem(str.replaceAll("[ ]", "").toLowerCase()) + " ";
+        return stemmer.stem(str.toLowerCase());
     }
 
     public static void main(String args[]) {

@@ -20,7 +20,7 @@ runSplit:
 runToken:
 	java Scanner $(FILE).txt > $(FILE).tok
 runPre:
-	java Preprocessor $(FILE).tok > $(FILE).pre
+	java -cp opennlp-tools-1.9.1.jar:. Preprocessor $(FILE).tok > $(FILE).pre
 
 #Tokenization
 Lexer.java: token.flex
