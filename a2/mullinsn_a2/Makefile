@@ -1,6 +1,6 @@
 JAVAC=javac
 CLASSPATH=opennlp-tools-1.9.1.jar:.
-FILE=data/xsDoc
+FILE=data/documents_small
 
 all: split token preprocessor offline online
 

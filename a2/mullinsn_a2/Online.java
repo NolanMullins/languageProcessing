@@ -4,6 +4,7 @@
 import java.io.*;
 import java.io.FileReader;
 import java.util.*;
+import java.lang.Math;
 import opennlp.tools.stemmer.PorterStemmer;
 
 public class Online {
@@ -69,9 +70,58 @@ public class Online {
             if (str.contains(" "))
                 str = str.replaceAll("[ ]", "");
             processedQuery.add(stemmer.stem(str.toLowerCase()));
-            System.out.println(processedQuery.get(processedQuery.size()-1));
         }
         return processedQuery;
+    }
+
+    public static void computeSimForTerm(TreeMap<String, Double> sim, String term, String[][] dictionary, String[][] postings, int totDocs) throws Exception {
+        //find the term
+        int a = 0;
+        for (a = 0; a < dictionary.length; a++)
+            if (dictionary[a][0].equals(term))
+                break;
+        //Not found
+        if (a==dictionary.length)
+            return;
+        int offset = Integer.parseInt(dictionary[a][1]);
+        //Calc how many docs contain our search term
+        int df = postings.length - offset;
+        if (a+1 < dictionary.length)
+            df = Integer.parseInt(dictionary[a+1][1]) - offset;
+        double idf = Math.log((double)totDocs / (double)df);
+
+        //Compute similarity value for each document in 
+        for (a = offset; a < offset + df; a++) {
+            int tf = Integer.parseInt(postings[a][1]);
+            double simVal = tf*idf;
+            if (sim.containsKey(postings[a][0]))
+                simVal += sim.get(postings[a][0]);
+            sim.put(postings[a][0], simVal);
+        }
+    }
+
+    public static void displaySearch(TreeMap<String, Double> sim) {
+        System.out.println("Results: ");
+        //get top 10 documents by similarity 
+        for (int a = 0; a < 10; a++) {
+            Map.Entry<String, Double> top = null;
+            //look for top result left in set
+            for (Map.Entry<String, Double> entry : sim.entrySet()) {
+                if (top == null)
+                    top = entry;
+                else if (entry.getValue() > top.getValue())
+                    top = entry;
+            }
+            //No matches found, finish
+            if (top == null || top.getValue() == 0)
+                break;
+            //remove top result from list and output to user 
+            else {
+                System.out.println(top.getKey() + " " + top.getValue());
+                sim.remove(top.getKey());
+            }
+        }
+        sim.clear();
     }
 
     public static void main(String args[]) {
@@ -81,14 +131,25 @@ public class Online {
             String postings[][] = readPostings();
             loadStopWords();
 
+            //Load the number of documents
+            BufferedReader docidsFile = new BufferedReader(new FileReader("docids.txt"));
+            if (docidsFile == null)
+                throw new Exception("Cannot find docids.txt");
+            int numDocs = Integer.parseInt(docidsFile.readLine());
+
             Console console = System.console();
             String query = "";
+            TreeMap<String, Double> sim = new TreeMap<>();
             while (!(query = console.readLine("Enter: ")).toLowerCase().equals("q") && !query.toLowerCase().equals("quit")) {
                 ArrayList<String> pQuery = preprocessQuery(query);
+                for (int a = 0; a < pQuery.size(); a++) {
+                    computeSimForTerm(sim, pQuery.get(a), dictionary, postings, numDocs);
+                }
+                displaySearch(sim);
             }
-
         } catch(Exception e) {
             System.out.println(e.getMessage());
+            System.out.println(e);
         }
     }
 }
