@@ -8,39 +8,39 @@ import java.util.*;
 public class Offline {
 
     //Adds a new stem into the map
-    public static void addStemToMap(String stem, String docid, TreeMap<String, ArrayList<String[]>> stems) {
-        ArrayList<String[]> stemData = new ArrayList<>();
-        String doc[] = new String[2];
+    public static void addStemToMap(String stem, int docid, TreeMap<String, ArrayList<Integer[]>> stems) {
+        ArrayList<Integer[]> stemData = new ArrayList<>();
+        Integer doc[] = new Integer[2];
         doc[0] = docid;
-        doc[1] = Integer.toString(1);
+        doc[1] = 1;
         stemData.add(doc);
         stems.put(stem, stemData);
     }
 
     //increments the tf of a stem in the map
-    public static void updateTF(String stem, String docid, TreeMap<String, ArrayList<String[]>> stems) {
-        ArrayList<String[]> stemData = stems.get(stem);
+    public static void updateTF(String stem, int docid, TreeMap<String, ArrayList<Integer[]>> stems) {
+        ArrayList<Integer[]> stemData = stems.get(stem);
         //look for existing doc entry
         for (int a = 0; a < stemData.size(); a++) {
-            if (stemData.get(a)[0].equals(docid)) {
-                int tf = Integer.parseInt(stemData.get(a)[1]);
-                stemData.get(a)[1] = Integer.toString(++tf);
+            if (stemData.get(a)[0] == docid) {
+                int tf = stemData.get(a)[1];
+                stemData.get(a)[1] = ++tf;
                 return;
             }
         }
         //No doc entry found for stem
-        String doc[] = new String[2];
+        Integer doc[] = new Integer[2];
         doc[0] = docid;
-        doc[1] = Integer.toString(1);
+        doc[1] = 1;
         stemData.add(doc);
     }
 
     //Writes the dictionary.txt file using the stem map
-    public static void writeDictionaryFile(TreeMap<String, ArrayList<String[]>> stems) throws Exception {
+    public static void writeDictionaryFile(TreeMap<String, ArrayList<Integer[]>> stems) throws Exception {
         BufferedWriter dictionaryFile = new BufferedWriter(new FileWriter("dictionary.txt"));
         dictionaryFile.write(Integer.toString(stems.size()) + "\n");
         //Write our each stem
-        for (Map.Entry<String, ArrayList<String[]>> entry : stems.entrySet()) {
+        for (Map.Entry<String, ArrayList<Integer[]>> entry : stems.entrySet()) {
             int df = entry.getValue().size();
             dictionaryFile.write(entry.getKey() + " " + Integer.toString(df) + "\n");
         }
@@ -48,16 +48,16 @@ public class Offline {
     }
 
     //write out the postings file given the stem map
-    public static void writePostingsFile(TreeMap<String, ArrayList<String[]>> stems) throws Exception {
+    public static void writePostingsFile(TreeMap<String, ArrayList<Integer[]>> stems) throws Exception {
         BufferedWriter postingsFile = new BufferedWriter(new FileWriter("postings.txt"));
         int numEntries = 0;
         //calc the total number of references 
-        for (Map.Entry<String, ArrayList<String[]>> entry : stems.entrySet()) {
+        for (Map.Entry<String, ArrayList<Integer[]>> entry : stems.entrySet()) {
             numEntries += entry.getValue().size();
         }
         postingsFile.write(Integer.toString(numEntries) + "\n");
         //write out the stem frequency per document
-        for (Map.Entry<String, ArrayList<String[]>> entry : stems.entrySet()) {
+        for (Map.Entry<String, ArrayList<Integer[]>> entry : stems.entrySet()) {
             for (int a = 0; a < entry.getValue().size(); a++) {
                 postingsFile.write(entry.getValue().get(a)[0] + " " + entry.getValue().get(a)[1] + "\n");
             }
@@ -77,7 +77,7 @@ public class Offline {
     }
 
     //takes a line and adds the stems into the stem map
-    public static void parseLine(TreeMap<String, ArrayList<String[]>> stems, String curDocID, String line) {
+    public static void parseLine(TreeMap<String, ArrayList<Integer[]>> stems, int curDocID, String line) {
         String[] tokens = line.split("[ ]");
         for (String tok : tokens) {
             if (stems.containsKey(tok)) {
@@ -94,7 +94,7 @@ public class Offline {
                 InputStream infile = new FileInputStream(arg);
                 BufferedReader buf = new BufferedReader(new InputStreamReader(infile));
                 
-                TreeMap<String, ArrayList<String[]>> stems = new TreeMap<>();
+                TreeMap<String, ArrayList<Integer[]>> stems = new TreeMap<>();
                 ArrayList<String[]> docids = new ArrayList<>();
                 String line = null;
                 String curDocID = "";
@@ -114,15 +114,17 @@ public class Offline {
                         continue;
                     //Record the title
                     } else if (line.contains("$TITLE")) {
-                        line = buf.readLine();
-                        lineNum++;
-                        docids.get(docids.size()-1)[2] = line;
-                        parseLine(stems, curDocID, line);
+                        docids.get(docids.size()-1)[2] = "";
+                        while ((line=buf.readLine()) != null && !line.contains("$TEXT") && ++lineNum > 0) {
+                            line.replaceAll("[\n]", "");
+                            docids.get(docids.size()-1)[2] += line+" ";
+                            parseLine(stems, relativeDoc, line);
+                        }
                     //Record the text
                     } else {
                         if (line.contains("$TEXT"))
                             continue;
-                        parseLine(stems, curDocID, line);
+                        parseLine(stems, relativeDoc, line);
                     }
                 }
                 writeDictionaryFile(stems);

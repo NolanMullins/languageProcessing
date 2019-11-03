@@ -64,12 +64,12 @@ public class Online {
     }
 
     //filters the users query, removes stopwords, punctuation, numbers and stems words
-    public static ArrayList<String> preprocessQuery(String query) throws Exception {
+    public static TreeMap<String, Integer> preprocessQuery(String query) throws Exception {
         Lexer processor = new Lexer(new StringReader(query));
         if (stemmer == null)
             stemmer = new PorterStemmer();
         Token tok = null;
-        ArrayList<String> processedQuery = new ArrayList<>();
+        TreeMap<String, Integer> processedQuery = new TreeMap<>();
 
         //clean up each token in the array
         while((tok=processor.yylex()) != null) {
@@ -84,14 +84,20 @@ public class Online {
             
             if (str.contains(" "))
                 str = str.replaceAll("[ ]", "");
-            processedQuery.add(stemmer.stem(str.toLowerCase()));
+            
+            if (processedQuery.containsKey(str)) {
+                int tf = processedQuery.get(str);
+                processedQuery.put(str, tf+1);
+            } else {
+                processedQuery.put(str, 1);
+            }
         }
 
         return processedQuery;
     }
 
     //searches through the dictionary and postings and calculates the similarity 
-    public static void computeSimForTerm(TreeMap<String, Double> sim, String term, String[][] dictionary, String[][] postings, int totDocs) throws Exception {
+    public static void computeSimForTerm(TreeMap<String, Double> sim, String term, int qtf, String[][] dictionary, String[][] postings, int totDocs) throws Exception {
         //find the term
         int a = 0;
         for (a = 0; a < dictionary.length; a++)
@@ -111,7 +117,7 @@ public class Online {
         //Compute similarity value for each document in 
         for (a = offset; a < offset + df; a++) {
             int tf = Integer.parseInt(postings[a][1]);
-            double simVal = tf*idf;
+            double simVal = tf*idf*qtf*idf;
             if (sim.containsKey(postings[a][0]))
                 simVal += sim.get(postings[a][0]);
             sim.put(postings[a][0], simVal);
@@ -136,7 +142,12 @@ public class Online {
                 break;
             //remove top result from list and output to user 
             else {
-                System.out.println(top.getKey() + " " + top.getValue());
+                int relativeID = Integer.parseInt(top.getKey());
+
+                System.out.println(docInfo[relativeID][0]);
+                System.out.println("Score: " + top.getValue());
+                System.out.println("Starting line: " + docInfo[relativeID][1]);
+                System.out.println(docInfo[relativeID][2] +"\n");
                 sim.remove(top.getKey());
             }
         }
@@ -172,9 +183,10 @@ public class Online {
             
             //Allow for multiple queries until "q" or "quit" is entered
             while (!(query = console.readLine("Enter: ")).toLowerCase().equals("q") && !query.toLowerCase().equals("quit")) {
-                ArrayList<String> pQuery = preprocessQuery(query);
-                for (int a = 0; a < pQuery.size(); a++) {
-                    computeSimForTerm(sim, pQuery.get(a), dictionary, postings, numDocs);
+                //ArrayList<String> pQuery = preprocessQuery(query);
+                TreeMap<String, Integer> pQuery = preprocessQuery(query);
+                for (Map.Entry<String, Integer> entry : pQuery.entrySet()) {
+                    computeSimForTerm(sim, entry.getKey(), entry.getValue(), dictionary, postings, numDocs);
                 }
                 displaySearch(sim);
             }

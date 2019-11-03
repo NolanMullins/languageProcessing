@@ -9,6 +9,12 @@
 **********************************
 Problem
 **********************************
+We'll take a file of documents and process these in to a form that can be quickly searched through
+
+**********************************
+Assumptions
+**********************************
+-There will always be a $TEXT after a $TITLE
 
 **********************************
 Known Issues
@@ -95,7 +101,7 @@ Tested with documents_small.txt
 Improvements
 **********************************
 Allowing specific files to be treated as the dictionary.txt positings.txt and docids.txt
-Improving how the titles are handled
+Improving how the titles are handled, currently the program displays the preprocessed title, this looks bad
 
 **********************************
 Acknowledgements
