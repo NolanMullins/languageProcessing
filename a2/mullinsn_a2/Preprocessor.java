@@ -23,7 +23,7 @@ public class Preprocessor {
         Token tok = scanner.yylex();
         if (tok == null)
             return null;
-        if (tok.m_type == Token.DELIMITER || tok.m_type == Token.NEG_NUM || tok.m_type == Token.NUM || tok.m_type == Token.PUNCTUATION)
+        if (tok.m_type == Token.DELIMITER || tok.m_type == Token.NUM || tok.m_type == Token.PUNCTUATION)
             return "";
         String str = tok.toString();
         if (stopWords.containsKey(str.replaceAll("[ ]", "").toLowerCase()))

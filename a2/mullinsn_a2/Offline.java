@@ -32,14 +32,56 @@ public class Offline {
         stemData.add(doc);
     }
 
+    public static void writeDictionaryFile(TreeMap<String, ArrayList<String[]>> stems) throws Exception {
+        BufferedWriter dictionaryFile = new BufferedWriter(new FileWriter("dictionary.txt"));
+        dictionaryFile.write(Integer.toString(stems.size()) + "\n");
+        for (Map.Entry<String, ArrayList<String[]>> entry : stems.entrySet()) {
+            int df = entry.getValue().size();
+            dictionaryFile.write(entry.getKey() + " " + Integer.toString(df) + "\n");
+        }
+        dictionaryFile.close();
+    }
+
+    public static void writePostingsFile(TreeMap<String, ArrayList<String[]>> stems) throws Exception {
+        BufferedWriter postingsFile = new BufferedWriter(new FileWriter("postings.txt"));
+        int numEntries = 0;
+        for (Map.Entry<String, ArrayList<String[]>> entry : stems.entrySet()) {
+            numEntries += entry.getValue().size();
+        }
+        postingsFile.write(Integer.toString(numEntries) + "\n");
+        for (Map.Entry<String, ArrayList<String[]>> entry : stems.entrySet()) {
+            for (int a = 0; a < entry.getValue().size(); a++) {
+                postingsFile.write(entry.getValue().get(a)[0] + " " + entry.getValue().get(a)[1] + "\n");
+            }
+        }
+        postingsFile.close();
+    }
+
+    public static void writeDocIDsFile(ArrayList<String[]> docids) throws Exception {
+        BufferedWriter docidsFile = new BufferedWriter(new FileWriter("docids.txt"));
+        docidsFile.write(Integer.toString(docids.size()) + "\n");
+        for (int a = 0; a < docids.size(); a++) {
+            docidsFile.write(docids.get(a)[0] + " " + docids.get(a)[1] + " " + docids.get(a)[2] + "\n");
+        }
+        docidsFile.close();
+    }
+
+    public static void parseLine(TreeMap<String, ArrayList<String[]>> stems, String curDocID, String line) {
+        String[] tokens = line.split("[ ]");
+        for (String tok : tokens) {
+            if (stems.containsKey(tok)) {
+                updateTF(tok, curDocID, stems);
+            } else {
+                addStemToMap(tok, curDocID, stems);
+            }
+        }
+    }
+
     public static void main(String args[]) {
         try {
             for (String arg : args) {
                 InputStream infile = new FileInputStream(arg);
                 BufferedReader buf = new BufferedReader(new InputStreamReader(infile));
-                BufferedWriter dictonaryFile = new BufferedWriter(new FileWriter("dictionary.txt"));
-                BufferedWriter postingsFile = new BufferedWriter(new FileWriter("postings.txt"));
-                BufferedWriter docidsFile = new BufferedWriter(new FileWriter("docids.txt"));
                 
                 TreeMap<String, ArrayList<String[]>> stems = new TreeMap<>();
                 ArrayList<String[]> docids = new ArrayList<>();
@@ -48,30 +90,27 @@ public class Offline {
                 int lineNum = 0;
                 while ((line = buf.readLine()) != null && ++lineNum > 0) {
                     if (line.contains("$DOC")) {
-                        String doc[] = new String[2];
+                        String doc[] = new String[3];
                         curDocID = line.split("[ ]")[1];
                         doc[0] = curDocID;
                         doc[1] = Integer.toString(lineNum);
+                        doc[2] = "NULL";
                         docids.add(doc);
                         continue;
-                    } else if (line.contains("$TEXT") || line.contains("$TITLE")) {
-                        continue;
+                    } else if (line.contains("$TITLE")) {
+                        line = buf.readLine();
+                        lineNum++;
+                        docids.get(docids.size()-1)[2] = line;
+                        parseLine(stems, curDocID, line);
                     } else {
-                        String[] tokens = line.split("[ ]");
-                        for (String tok : tokens) {
-                            if (stems.containsKey(tok)) {
-                                updateTF(tok, curDocID, stems);
-                            } else {
-                                addStemToMap(tok, curDocID, stems);
-                            }
-                        }
-
+                        if (line.contains("$TEXT"))
+                            continue;
+                        parseLine(stems, curDocID, line);
                     }
                 }
-                //TODO output
-                for (Map.Entry<String, ArrayList<String[]>> entry : stems.entrySet()) {
-                    System.out.println(entry.getKey() +" - "+ entry.getValue().get(0)[1]);
-                }
+                writeDictionaryFile(stems);
+                writePostingsFile(stems);
+                writeDocIDsFile(docids);
             }
         } catch (Exception e) {
             System.out.println("Unexpected exception:");

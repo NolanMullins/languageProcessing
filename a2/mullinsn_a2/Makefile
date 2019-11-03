@@ -1,8 +1,8 @@
 JAVAC=javac
 CLASSPATH=opennlp-tools-1.9.1.jar:.
-FILE=data/test
+FILE=data/xsDoc
 
-all: split token preprocessor offline
+all: split token preprocessor offline online
 
 %.class: %.java
 	$(JAVAC) -cp $(CLASSPATH) $^
@@ -13,6 +13,7 @@ preprocessor: Preprocessor.class
 split: SentenceDetectionME.class
 token: gen-jflex Token.class Lexer.class Scanner.class
 offline: Offline.class
+online: Online.class
 
 
 #Run with a sample file
@@ -24,6 +25,8 @@ runPre:
 	java -cp opennlp-tools-1.9.1.jar:. Preprocessor $(FILE).tok > $(FILE).pre
 runOffline:
 	java Offline $(FILE).pre
+runOnline:
+	java -cp opennlp-tools-1.9.1.jar:. Online
 
 #Tokenization
 Lexer.java: token.flex

@@ -50,7 +50,7 @@ WhiteSpace     = [ \t\f]
 "{"[^\}]*"}"                { /* skip comments */ }
 
 //punctuation
-[.!?,;:'\(\)\[\]\"’-]         { return new Token(Token.PUNCTUATION, yytext(), yyline, yycolumn); }
+[.!?,;:'\(\)\[\]\"’\-\*+\/&%$#@\^]         { return new Token(Token.PUNCTUATION, yytext(), yyline, yycolumn); }
 //New lines
 [\n]                        { return new Token(Token.NL, yytext(), yyline, yycolumn); }
 .                           { return new Token(Token.OTHER, yytext(), yyline, yycolumn); }
