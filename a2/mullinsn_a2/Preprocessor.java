@@ -1,5 +1,8 @@
 /* Preprocessor 
- *
+ * Takes an input file and removes unnecessary data
+ * Removes stop words
+ * removes punctuation
+ * removes numbers
  */
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -41,8 +44,10 @@ public class Preprocessor {
             BufferedReader stopWordsReader = new BufferedReader(new InputStreamReader(stopWordsFile));
             HashMap<String, Boolean> stopWords = new HashMap<>();
             String line = null;
+            //read in the stopwords
             while((line = stopWordsReader.readLine()) != null)
                 stopWords.put(line, true);
+            //read in the input files
             for (String arg : args) {
                 InputStream infile = new FileInputStream(arg);
                 Preprocessor processor = new Preprocessor(new Lexer(new InputStreamReader(infile)));

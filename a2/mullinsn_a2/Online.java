@@ -1,5 +1,5 @@
 /* Online processor 
- * 
+ * Used to search through the processed document
  */
 import java.io.*;
 import java.io.FileReader;
@@ -10,7 +10,8 @@ import opennlp.tools.stemmer.PorterStemmer;
 public class Online {
     static PorterStemmer stemmer = null;
     static HashMap<String, Boolean> stopWords = new HashMap<>();
-
+    static String docInfo[][] = null;
+    //loads the stopwords into memory, only needs to be calld at the start of the program
     public static void loadStopWords() throws Exception {
         InputStream stopWordsFile = new FileInputStream("data/stopwords.txt");
         if (stopWordsFile == null)
@@ -21,6 +22,7 @@ public class Online {
             stopWords.put(line, true);
     }
 
+    //reads in the dictionary txt and converts it to an offset array
     public static String[][] readDictionary() throws Exception {
         BufferedReader dicFile = new BufferedReader(new FileReader("dictionary.txt"));
         if (dicFile == null)
@@ -28,6 +30,8 @@ public class Online {
         int docTotal = Integer.parseInt(dicFile.readLine());
         int offset = 0;
         String dictionary[][] = new String[docTotal][2];
+
+        //read each stem in the dictionary file
         for (int a = 0; a < docTotal; a++) {
             String line[] = dicFile.readLine().split("[ ]");
             if (line.length < 2)
@@ -39,13 +43,17 @@ public class Online {
         return dictionary;
     }
 
+    //reads in the postings file
     public static String[][] readPostings() throws Exception {
         BufferedReader postFile = new BufferedReader(new FileReader("postings.txt"));
         if (postFile == null)
             throw new Exception("Cannot find postings.txt");
         int postTot = Integer.parseInt(postFile.readLine());
         String postings[][] = new String[postTot][2];
+
+        //store each entry in the file
         for (int a = 0; a < postTot; a++) {
+            //split into docid and tf
             String line[] = postFile.readLine().split("[ ]");
             if (line.length < 2)
                 continue;
@@ -55,25 +63,34 @@ public class Online {
         return postings;
     }
 
+    //filters the users query, removes stopwords, punctuation, numbers and stems words
     public static ArrayList<String> preprocessQuery(String query) throws Exception {
         Lexer processor = new Lexer(new StringReader(query));
         if (stemmer == null)
             stemmer = new PorterStemmer();
         Token tok = null;
         ArrayList<String> processedQuery = new ArrayList<>();
+
+        //clean up each token in the array
         while((tok=processor.yylex()) != null) {
+            //remove these types
             if (tok.m_type == Token.DELIMITER || tok.m_type == Token.NUM || tok.m_type == Token.PUNCTUATION)
                 continue;
+
             String str = tok.toString();
+            //remove stop words
             if (stopWords.containsKey(str.replaceAll("[ ]", "").toLowerCase()))
                 continue;
+            
             if (str.contains(" "))
                 str = str.replaceAll("[ ]", "");
             processedQuery.add(stemmer.stem(str.toLowerCase()));
         }
+
         return processedQuery;
     }
 
+    //searches through the dictionary and postings and calculates the similarity 
     public static void computeSimForTerm(TreeMap<String, Double> sim, String term, String[][] dictionary, String[][] postings, int totDocs) throws Exception {
         //find the term
         int a = 0;
@@ -84,6 +101,7 @@ public class Online {
         if (a==dictionary.length)
             return;
         int offset = Integer.parseInt(dictionary[a][1]);
+
         //Calc how many docs contain our search term
         int df = postings.length - offset;
         if (a+1 < dictionary.length)
@@ -100,6 +118,7 @@ public class Online {
         }
     }
 
+    //Outputs the top 10 search results to the console
     public static void displaySearch(TreeMap<String, Double> sim) {
         System.out.println("Results: ");
         //get top 10 documents by similarity 
@@ -136,10 +155,22 @@ public class Online {
             if (docidsFile == null)
                 throw new Exception("Cannot find docids.txt");
             int numDocs = Integer.parseInt(docidsFile.readLine());
+            docInfo = new String[numDocs][3];
+            for (int a = 0; a < numDocs; a++) {
+                String line[] = docidsFile.readLine().split("[ ]");
+                docInfo[a][0] = line[0];
+                docInfo[a][1] = line[1];
+                docInfo[a][2] = "";
+                for (int b = 2; b < line.length; b++) {
+                    docInfo[a][2] += line[b] +" ";
+                }
+            }
 
             Console console = System.console();
             String query = "";
             TreeMap<String, Double> sim = new TreeMap<>();
+            
+            //Allow for multiple queries until "q" or "quit" is entered
             while (!(query = console.readLine("Enter: ")).toLowerCase().equals("q") && !query.toLowerCase().equals("quit")) {
                 ArrayList<String> pQuery = preprocessQuery(query);
                 for (int a = 0; a < pQuery.size(); a++) {
