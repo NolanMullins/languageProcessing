@@ -1,0 +1,114 @@
+/****************************************
+ * Nolan Mullins
+ * 0939720
+ * 2019-11-03
+ * 4500 - NLP - A2
+ ****************************************/
+
+
+**********************************
+Problem
+**********************************
+We'll take a file of documents and process these in to a form that can be quickly searched through
+
+**********************************
+Assumptions
+**********************************
+-There will always be a $TEXT after a $TITLE
+
+**********************************
+Known Issues
+**********************************
+-Multiline titles don't get their full title put in the docids
+
+**********************************
+Guide
+**********************************
+Easiest way to run everything, edit the $(FILE) var int he makefile to be your input (leave out the .txt)
+make processDoc
+make runOnline
+
+*******
+Compile
+*******
+type: make
+
+output: 
+SentenceDetectionME
+Scanner
+Preprocessor
+Offline
+Online
+
+*******
+Running
+*******
+
+Splitter:
+make runSplit
+java -cp opennlp-tools-1.9.1.jar:. SentenceDetectionME <in file> > <out file>
+
+make runToken
+java Scanner <in file> > <out file>
+
+make runPre
+java -cp opennlp-tools-1.9.1.jar:. Preprocessor <in file> > <out file>
+
+make runOffline
+java Offline <in file>
+
+make runOnline
+java -cp opennlp-tools-1.9.1.jar:. Online
+
+Example:
+make processDoc 
+this command will fully process a file defined in the makefile (currently documents_small)
+
+**********************************
+Test plan
+**********************************
+
+Tested using test.txt
+ - Numbers 
+    - +1.0
+    - -1.0
+    - 1124 245
+- Various punctuation  
+  - U.S. -> same
+  - O.K. -> same
+  - John’s -> same
+  - O’Reily’s -> same
+  - this’is’just’a’test -> splits all '
+  - world’cup -> splits on '
+  - word234
+
+Tested using xsDoc.txt
+- Multiple document parsing
+- Multiple document search with unique terms
+- Title parsing
+
+Tested with documents_small.txt
+- Tested no punctuation made it through (it shows up at the top)
+- Tested more complicated queries
+  - terms with a low df
+    - zurich, df = 4
+    - civilians, df = 0
+  - terms with a very high df
+    - yard, df = 100
+
+- Tested on socs server
+
+**********************************
+Improvements
+**********************************
+Allowing specific files to be treated as the dictionary.txt positings.txt and docids.txt
+Improving how the titles are handled, currently the program displays the preprocessed title, this looks bad
+
+**********************************
+Acknowledgements
+**********************************
+I used the sample code provided as a base foundation to build this project on. 
+Samples used:
+    Scanner.java
+    POSTaggingMEDemo.java
+    SentenceDetectionME.java
