@@ -28,13 +28,7 @@ def analyzeDataSet(dataSet):
     print(len(dataSet['data']))
     
 def verify(pipe, vSet):
-    '''
-    counts = transformer.transform(vSet['data'])
-    newtfidf = tfidf.transform(counts)
-    predicted = clf.predict(newtfidf)
-    '''
     predicted = pipe.predict(vSet['data'])
-
     accuracy = 0
     for prediction, actual in zip(predicted, vSet['score']):
         if (prediction == actual):
@@ -45,14 +39,11 @@ def verify(pipe, vSet):
 
 def train(pipe, trainingSet):
     pipe.fit(trainingSet['data'], trainingSet['score'])
-
-    '''
-    cvect = extraction.CountVectorizer()
-    trainCounts = cvect.fit_transform(trainingSet['data'])
-    tfidf = TfidfTransformer().fit_transform(trainCounts)
-    clf = MultinomialNB().fit(tfidf, trainingSet['data'])
-    '''
     return pipe
+
+def runTest(pipe, splits):
+    pipe = train(pipe, splits['trn'])
+    verify(pipe, splits['val'])
 
 def loadFiles(): 
     posFiles = os.listdir('txt_sentoken/pos')
@@ -84,25 +75,20 @@ if __name__ == "__main__":
     split = splitData(data)
 
     #build pipeline
-    pipeCHI = Pipeline([
+    runTest(Pipeline([
         ('vect', extraction.CountVectorizer()),
         ('chi2', fSelection.SelectKBest(fSelection.chi2, k=1000)),
         ('clf', MultinomialNB()),
-    ])
-    pipeCHI = train(pipeCHI, split['trn'])
-    verify(pipeCHI, split['val'])
-    pipeCHI2 = Pipeline([
+    ]), split)
+
+    runTest(Pipeline([
         ('vect', extraction.CountVectorizer()),
         ('chi2', fSelection.SelectKBest(fSelection.chi2, k=2000)),
         ('clf', MultinomialNB()),
-    ])
-    pipeCHI2 = train(pipeCHI2, split['trn'])
-    verify(pipeCHI2, split['val'])
+    ]), split)
 
-    pipeB = Pipeline([
+    runTest(Pipeline([
         ('vect', CountVectorizer()),
         ('tfidf', TfidfTransformer()),
         ('clf', MultinomialNB()),
-    ])
-    pipeB = train(pipeB, split['trn'])
-    verify(pipeB, split['val'])
+    ]), split)
