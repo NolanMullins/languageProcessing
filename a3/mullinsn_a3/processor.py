@@ -19,7 +19,7 @@ from sklearn.svm import SVR
 from sklearn.pipeline import Pipeline
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import TfidfTransformer
-
+from sklearn.feature_extraction.text import CountVectorizer
 
 
 #def featureSelection():
@@ -27,10 +27,13 @@ from sklearn.feature_extraction.text import TfidfTransformer
 def analyzeDataSet(dataSet):
     print(len(dataSet['data']))
     
-def verify(clf, transformer, tfidf, vSet):
+def verify(pipe, vSet):
+    '''
     counts = transformer.transform(vSet['data'])
     newtfidf = tfidf.transform(counts)
     predicted = clf.predict(newtfidf)
+    '''
+    predicted = pipe.predict(vSet['data'])
 
     accuracy = 0
     for prediction, actual in zip(predicted, vSet['score']):
@@ -38,20 +41,18 @@ def verify(clf, transformer, tfidf, vSet):
             accuracy += 1
 
     accuracy = accuracy / len(vSet['score']) 
-    print("Accuracy: " + accuracy)
+    print("Accuracy: " + str(accuracy))
 
-def train(trainingSet):
+def train(pipe, trainingSet):
+    pipe.fit(trainingSet['data'], trainingSet['score'])
+
+    '''
     cvect = extraction.CountVectorizer()
     trainCounts = cvect.fit_transform(trainingSet['data'])
     tfidf = TfidfTransformer().fit_transform(trainCounts)
     clf = MultinomialNB().fit(tfidf, trainingSet['data'])
-
-    counts = cvect.transform(trainingSet['data'])
-    #Not working and needed for predictions in verification step
-    newtfidf = tfidf.transform(counts)
-    predicted = clf.predict(newtfidf)
-
-    return clf, cvect, tfidf
+    '''
+    return pipe
 
 def loadFiles(): 
     posFiles = os.listdir('txt_sentoken/pos')
@@ -78,14 +79,30 @@ def splitData(data):
     return {'val': validation, 'trn': training, 'test': testing}
 
 if __name__ == "__main__":
+
     data = loadFiles()
     split = splitData(data)
 
     #build pipeline
-    pipeA = Pipeline([
+    pipeCHI = Pipeline([
         ('vect', extraction.CountVectorizer()),
-        ('tdidf', extraction.TfidfTransformer()),
-        ('rfe', fSelection.RFE(SVR(kernel="linear"))),
+        ('chi2', fSelection.SelectKBest(fSelection.chi2, k=1000)),
+        ('clf', MultinomialNB()),
     ])
-    clf, transformer, tfidf = train(split['trn'])
-    verify(clf, transformer, tfidf, split['val'])
+    pipeCHI = train(pipeCHI, split['trn'])
+    verify(pipeCHI, split['val'])
+    pipeCHI2 = Pipeline([
+        ('vect', extraction.CountVectorizer()),
+        ('chi2', fSelection.SelectKBest(fSelection.chi2, k=2000)),
+        ('clf', MultinomialNB()),
+    ])
+    pipeCHI2 = train(pipeCHI2, split['trn'])
+    verify(pipeCHI2, split['val'])
+
+    pipeB = Pipeline([
+        ('vect', CountVectorizer()),
+        ('tfidf', TfidfTransformer()),
+        ('clf', MultinomialNB()),
+    ])
+    pipeB = train(pipeB, split['trn'])
+    verify(pipeB, split['val'])
