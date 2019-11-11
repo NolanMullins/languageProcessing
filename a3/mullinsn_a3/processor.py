@@ -119,6 +119,12 @@ if __name__ == "__main__":
     ]), split)
 
     runTest(Pipeline([
+        ('vect', extraction.CountVectorizer(ngram_range=(1,1), min_df=2)),
+        ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.1)),
+        ('clf', neural.MLPClassifier()),
+    ]), split)    
+    
+    runTest(Pipeline([
         ('vect', extraction.CountVectorizer()),
         ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.1)),
         ('clf', neural.MLPClassifier()),
