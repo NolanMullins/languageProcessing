@@ -11,6 +11,14 @@ import numpy as np
 import sklearn.model_selection as mSelection
 import sklearn.feature_extraction.text as extraction
 import sklearn.feature_selection as fSelection
+import sklearn.ensemble as ensemble
+
+#Did not work well
+import sklearn.neighbors as skn
+
+#testing
+import sklearn.neural_network as neural
+from sklearn.naive_bayes import GaussianNB
 
 from sklearn import datasets
 from sklearn.datasets.base import Bunch
@@ -20,6 +28,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
+
 
 
 #def featureSelection():
@@ -77,6 +86,22 @@ if __name__ == "__main__":
     #build pipeline
     runTest(Pipeline([
         ('vect', extraction.CountVectorizer()),
+        ('chi2', fSelection.SelectKBest(fSelection.chi2, k=2000)),
+        ('clf', GaussianNB()),
+    ]), split)
+
+    runTest(Pipeline([
+        ('vect', extraction.CountVectorizer()),
+        ('clf', ensemble.ExtraTreesClassifier(n_estimators=2000)),
+    ]), split)
+
+    runTest(Pipeline([
+        ('vect', extraction.CountVectorizer()),
+        ('clf', ensemble.RandomForestClassifier(n_estimators=2000)),
+    ]), split)
+
+    runTest(Pipeline([
+        ('vect', extraction.CountVectorizer()),
         ('chi2', fSelection.SelectKBest(fSelection.chi2, k=1000)),
         ('clf', MultinomialNB()),
     ]), split)
@@ -88,7 +113,19 @@ if __name__ == "__main__":
     ]), split)
 
     runTest(Pipeline([
-        ('vect', CountVectorizer()),
-        ('tfidf', TfidfTransformer()),
-        ('clf', MultinomialNB()),
+        ('vect', extraction.CountVectorizer()),
+        ('chi2', fSelection.SelectPercentile(fSelection.chi2, percentile=10)),
+        ('clf', neural.MLPClassifier()),
+    ]), split)
+
+    runTest(Pipeline([
+        ('vect', extraction.CountVectorizer()),
+        ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.1)),
+        ('clf', neural.MLPClassifier()),
+    ]), split)
+
+    runTest(Pipeline([
+        ('vect', extraction.CountVectorizer()),
+        ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.1)),
+        ('clf', neural.MLPClassifier(early_stopping=True, max_iter=400)),
     ]), split)
