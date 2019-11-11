@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 
-#god bless
-#https://scikit-learn.org/stable/tutorial/text_analytics/working_with_text_data.html?fbclid=IwAR2UR0n1ZsjhzLJjRedkVA1NpUUjsuf-_ZcVLSSHfbLUIaxEs3-Sg3beBuM#building-a-pipeline
+# 3 ML techniques
+# MultinomialNB
+# MLP (neural net) 
+# k nearest neighbours
 
 import sys
 import os
+from multiprocessing import Process
 
 import numpy as np
 
@@ -12,22 +15,15 @@ import sklearn.model_selection as mSelection
 import sklearn.feature_extraction.text as extraction
 import sklearn.feature_selection as fSelection
 import sklearn.ensemble as ensemble
-
-#Did not work well
-import sklearn.neighbors as skn
-
-#testing
 import sklearn.neural_network as neural
-from sklearn.naive_bayes import GaussianNB
 
 from sklearn import datasets
 from sklearn.datasets.base import Bunch
-from sklearn.feature_selection import RFE
-from sklearn.svm import SVR
 from sklearn.pipeline import Pipeline
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.neighbors import KNeighborsClassifier
 
 
 
@@ -36,7 +32,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 def analyzeDataSet(dataSet):
     print(len(dataSet['data']))
     
-def verify(pipe, vSet):
+def verify(pipe, vSet, msg):
     predicted = pipe.predict(vSet['data'])
     accuracy = 0
     for prediction, actual in zip(predicted, vSet['score']):
@@ -44,15 +40,16 @@ def verify(pipe, vSet):
             accuracy += 1
 
     accuracy = accuracy / len(vSet['score']) 
+    print(msg)
     print("Accuracy: " + str(accuracy))
 
 def train(pipe, trainingSet):
     pipe.fit(trainingSet['data'], trainingSet['score'])
     return pipe
 
-def runTest(pipe, splits):
+def runTest(pipe, splits, msg):
     pipe = train(pipe, splits['trn'])
-    verify(pipe, splits['val'])
+    verify(pipe, splits['val'], msg)
 
 def loadFiles(): 
     posFiles = os.listdir('txt_sentoken/pos')
@@ -82,56 +79,47 @@ if __name__ == "__main__":
 
     data = loadFiles()
     split = splitData(data)
+    proc = []
 
-    #build pipeline
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer()),
-        ('chi2', fSelection.SelectKBest(fSelection.chi2, k=2000)),
-        ('clf', GaussianNB()),
-    ]), split)
+    print("\nCount Vect -> fSelect -> KNearest")
+    for i in range(1,7):
+        pipe = Pipeline([
+            ('vect', extraction.CountVectorizer()),
+            ('chi2', fSelection.SelectKBest(fSelection.chi2, k=500*i)),
+            ('clf', KNeighborsClassifier()),
+        ])
+        runTest(pipe, split, str(i*500))
 
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer()),
-        ('clf', ensemble.ExtraTreesClassifier(n_estimators=2000)),
-    ]), split)
+    print("\nCount Vect -> fSelect -> MultiNB")
+    for i in range(1,7):
+        pipe = Pipeline([
+            ('vect', extraction.CountVectorizer()),
+            ('chi2', fSelection.SelectKBest(fSelection.chi2, k=500*i)),
+            ('clf', MultinomialNB()),
+        ])
+        runTest(pipe, split, str(500*i))
 
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer()),
-        ('clf', ensemble.RandomForestClassifier(n_estimators=2000)),
-    ]), split)
+    print("\nCount Vect -> fSelect -> MLP")
+    for i in range(1,7):
+        pipe = Pipeline([
+            ('vect', extraction.CountVectorizer()),
+            ('chi2', fSelection.SelectKBest(fSelection.chi2, k=500*i)),
+            ('clf', neural.MLPClassifier(solver='adam',early_stopping=True, max_iter=400)),
+        ])
+        runTest(pipe, split, str(500*i))
 
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer()),
-        ('chi2', fSelection.SelectKBest(fSelection.chi2, k=1000)),
-        ('clf', MultinomialNB()),
-    ]), split)
+    #My test pipelines 
+    print("")
+    pipe = Pipeline([
+        ('vect', extraction.CountVectorizer(ngram_range=(1,2), min_df=10)),
+        ('tfid', extraction.TfidfTransformer()),
+        ('clf', MultinomialNB())
+    ])
+    runTest(pipe, split, "Count Vect -> Tfid -> MultiNB")
 
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer()),
-        ('chi2', fSelection.SelectKBest(fSelection.chi2, k=2000)),
-        ('clf', MultinomialNB()),
-    ]), split)
-
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer()),
-        ('chi2', fSelection.SelectPercentile(fSelection.chi2, percentile=10)),
-        ('clf', neural.MLPClassifier()),
-    ]), split)
-
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer(ngram_range=(1,1), min_df=2)),
+    pipe = Pipeline([
+        ('vect', extraction.CountVectorizer(ngram_range=(1,2), min_df=10)),
         ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.1)),
-        ('clf', neural.MLPClassifier()),
-    ]), split)    
-    
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer()),
-        ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.1)),
-        ('clf', neural.MLPClassifier()),
-    ]), split)
-
-    runTest(Pipeline([
-        ('vect', extraction.CountVectorizer()),
-        ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.1)),
-        ('clf', neural.MLPClassifier(early_stopping=True, max_iter=400)),
-    ]), split)
+        ('clf', neural.MLPClassifier(solver='adam',early_stopping=True, max_iter=400)),
+    ])    
+    runTest(pipe, split, "Count Vect -> SelectFpr -> MLP")
