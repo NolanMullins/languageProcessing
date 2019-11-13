@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+# Feature selection
+# SelectKBest
+# SelectFpr
+
 # 3 ML techniques
 # MultinomialNB
 # MLP (neural net) 
@@ -7,6 +11,7 @@
 
 import sys
 import os
+import statistics
 from multiprocessing import Process
 
 import numpy as np
@@ -16,6 +21,10 @@ import sklearn.feature_extraction.text as extraction
 import sklearn.feature_selection as fSelection
 import sklearn.ensemble as ensemble
 import sklearn.neural_network as neural
+
+from sklearn.model_selection import ShuffleSplit
+from sklearn import metrics
+from sklearn.model_selection import cross_val_score
 
 from sklearn import datasets
 from sklearn.datasets.base import Bunch
@@ -32,7 +41,7 @@ from sklearn.neighbors import KNeighborsClassifier
 def analyzeDataSet(dataSet):
     print(len(dataSet['data']))
     
-def verify(pipe, vSet, msg):
+def verify(pipe, vSet):
     predicted = pipe.predict(vSet['data'])
     accuracy = 0
     for prediction, actual in zip(predicted, vSet['score']):
@@ -40,16 +49,18 @@ def verify(pipe, vSet, msg):
             accuracy += 1
 
     accuracy = accuracy / len(vSet['score']) 
-    print(msg)
-    print("Accuracy: " + str(accuracy))
+    print("Accuracy with validation set: " + str(accuracy))
 
-def train(pipe, trainingSet):
+def crossValidate(pipe, trainingSet):
+    cv = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
     pipe.fit(trainingSet['data'], trainingSet['score'])
-    return pipe
+    return cross_val_score(pipe, trainingSet['data'], trainingSet['score'], cv=cv)
 
 def runTest(pipe, splits, msg):
-    pipe = train(pipe, splits['trn'])
-    verify(pipe, splits['val'], msg)
+    print(msg)
+    scores = crossValidate(pipe, splits['trn'])
+    print("Crossvalidation mean: "+str(statistics.mean(scores)))
+    verify(pipe, splits['val'])
 
 def loadFiles(): 
     posFiles = os.listdir('txt_sentoken/pos')
@@ -69,11 +80,8 @@ def splitData(data):
     x,y=data.data,data.score
     x_alt, x_val, y_alt, y_val = mSelection.train_test_split(x,y, train_size=.85, test_size=.15, random_state=135)
     validation = {'data': x_val, 'score': y_val}
-
-    x_train, x_test, y_train, y_test = mSelection.train_test_split(x_alt, y_alt, train_size=.8, test_size=.2, random_state=52)
-    training = {'data': x_train, 'score': y_train}
-    testing = {'data': x_test, 'score': y_test}
-    return {'val': validation, 'trn': training, 'test': testing}
+    training = {'data': x_alt, 'score': y_alt}
+    return {'val': validation, 'trn': training}
 
 if __name__ == "__main__":
 
@@ -90,6 +98,20 @@ if __name__ == "__main__":
         ])
         runTest(pipe, split, str(i*500))
 
+    print("\nCount Vect -> SelectFpr -> KNearest")
+    a = 0.0005
+    for i in range(1,7):
+        if (i%2==1):
+            a = a * 2
+        else:
+            a = a * 5
+        pipe = Pipeline([
+            ('vect', extraction.CountVectorizer()),
+            ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=a)),
+            ('clf', KNeighborsClassifier()),
+        ])
+        runTest(pipe, split, "alpha = " + str(a))
+
     print("\nCount Vect -> fSelect -> MultiNB")
     for i in range(1,7):
         pipe = Pipeline([
@@ -98,6 +120,20 @@ if __name__ == "__main__":
             ('clf', MultinomialNB()),
         ])
         runTest(pipe, split, str(500*i))
+
+    print("\nCount Vect -> SelectFpr -> MultiNB")
+    a = 0.0005
+    for i in range(1,7):
+        if (i%2==1):
+            a = a * 2
+        else:
+            a = a * 5
+        pipe = Pipeline([
+            ('vect', extraction.CountVectorizer()),
+            ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=a)),
+            ('clf', MultinomialNB()),
+        ])
+        runTest(pipe, split, "alpha = " + str(a))
 
     print("\nCount Vect -> fSelect -> MLP")
     for i in range(1,7):
@@ -108,8 +144,38 @@ if __name__ == "__main__":
         ])
         runTest(pipe, split, str(500*i))
 
+    print("\nCount Vect -> SelectFpr -> MLP")
+    a = 0.0005
+    for i in range(1,7):
+        if (i%2==1):
+            a = a * 2
+        else:
+            a = a * 5
+        pipe = Pipeline([
+            ('vect', extraction.CountVectorizer()),
+            ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=a)),
+            ('clf', neural.MLPClassifier(solver='adam',early_stopping=True, max_iter=400)),
+        ])
+        runTest(pipe, split, "alpha = " + str(a))
+    
+
     #My test pipelines 
+    '''
     print("")
+    a = 0.00005
+    print("Count Vect -> SelectFpr -> MLP")
+    for i in range(1,10):
+        if (i%2==1):
+            a = a * 2
+        else:
+            a = a * 5
+        pipe = Pipeline([
+            ('vect', extraction.CountVectorizer(ngram_range=(1,2), min_df=10)),
+            ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=a)),
+            ('clf', neural.MLPClassifier(solver='adam',early_stopping=True, max_iter=400)),
+        ])    
+        runTest(pipe, split, "alpha = "+str(a))
+
     pipe = Pipeline([
         ('vect', extraction.CountVectorizer(ngram_range=(1,2), min_df=10)),
         ('tfid', extraction.TfidfTransformer()),
@@ -123,3 +189,11 @@ if __name__ == "__main__":
         ('clf', neural.MLPClassifier(solver='adam',early_stopping=True, max_iter=400)),
     ])    
     runTest(pipe, split, "Count Vect -> SelectFpr -> MLP")
+
+    pipe = Pipeline([
+        ('vect', extraction.CountVectorizer(ngram_range=(1,2), min_df=10)),
+        ('chi2', fSelection.SelectFwe(fSelection.chi2, alpha=.01)),
+        ('clf', neural.MLPClassifier(solver='adam',early_stopping=True, max_iter=400)),
+    ])    
+    runTest(pipe, split, "Count Vect -> SelectFwe -> MLP")
+    '''
