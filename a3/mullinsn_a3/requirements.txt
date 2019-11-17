@@ -2,3 +2,4 @@ numpy
 scipy
 joblib
 scikit-learn
+nltk
