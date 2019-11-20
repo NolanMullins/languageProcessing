@@ -22,7 +22,7 @@ import sklearn.feature_selection as fSelection
 import sklearn.ensemble as ensemble
 import sklearn.neural_network as neural
 
-from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn import metrics
 from sklearn.model_selection import cross_val_score
 
@@ -33,6 +33,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import f1_score
 
 from nltk import word_tokenize          
 from nltk.stem.porter import PorterStemmer
@@ -45,11 +46,19 @@ analyzer = CountVectorizer(stop_words='english').build_analyzer()
 def stemmed_words(doc):
     return (stemmer.stem(w) for w in analyzer(doc))
 
+def stemDoc(doc):
+    data = ""
+    for w in doc.split():
+        data += stemmer.stem(w) +" "
+    return data
+
 def analyzeDataSet(dataSet):
     print(len(dataSet['data']))
     
 def verify(pipe, vSet):
+    print('verifying')
     predicted = pipe.predict(vSet['data'])
+    '''
     accuracy = 0
     for prediction, actual in zip(predicted, vSet['score']):
         if (prediction == actual):
@@ -57,15 +66,24 @@ def verify(pipe, vSet):
 
     accuracy = accuracy / len(vSet['score']) 
     print("Accuracy with validation set: " + str(accuracy))
+    '''
+    score = f1_score(vSet['score'], predicted, average='weighted')
+    print("FScore on validation set: " + str(score))
 
+
+#todo set stratified
 def crossValidate(pipe, trainingSet):
-    cv = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
+    print('fitting')
+    cv = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
     pipe.fit(trainingSet['data'], trainingSet['score'])
+    print('cross validating')
+    #Setting cv = 5, forces it to use a stratified 5 fold
     return cross_val_score(pipe, trainingSet['data'], trainingSet['score'], cv=cv)
 
 def runTest(pipe, splits, msg):
     print(msg)
     scores = crossValidate(pipe, splits['trn'])
+    print(scores)
     print("Crossvalidation mean: "+str(statistics.mean(scores)))
     verify(pipe, splits['val'])
 
@@ -85,7 +103,7 @@ def loadFiles():
 
 def splitData(data):
     x,y=data.data,data.score
-    x_alt, x_val, y_alt, y_val = mSelection.train_test_split(x,y, train_size=.85, test_size=.15, random_state=135)
+    x_alt, x_val, y_alt, y_val = mSelection.train_test_split(x,y, train_size=.85, test_size=.15, random_state=135, stratify=y)
     validation = {'data': x_val, 'score': y_val}
     training = {'data': x_alt, 'score': y_alt}
     return {'val': validation, 'trn': training}
@@ -95,6 +113,7 @@ def runModified(split):
     for i in range(1,7):
         pipe = Pipeline([
             ('vect', extraction.CountVectorizer(ngram_range=(1,2))),
+            ('tfidf', TfidfTransformer()),
             ('chi2', fSelection.SelectKBest(fSelection.chi2, k=500*i)),
             ('clf', KNeighborsClassifier()),
         ])
@@ -236,13 +255,13 @@ if __name__ == "__main__":
     split = splitData(data)
     proc = []
 
-    print("\nCount Vect -> SelectFpr -> MLP")
     pipe = Pipeline([
-        ('vect', extraction.CountVectorizer(analyzer=stemmed_words)),
-        ('chi2', fSelection.SelectFwe(fSelection.chi2, alpha=.1)),
-        ('clf', neural.MLPClassifier(solver='adam',early_stopping=True, max_iter=400)),
+        ('vect', extraction.CountVectorizer(stop_words='english')),
+        ('tfid', extraction.TfidfTransformer()),
+        ('chi2', fSelection.SelectKBest(fSelection.chi2, k=3000)),
+        ('clf', neural.MLPClassifier(solver='adam',early_stopping=True, max_iter=400, learning_rate='adaptive')),
     ])
-    runTest(pipe, split, "english")
+    runTest(pipe, split, "")
 
     #My test pipelines 
     '''
