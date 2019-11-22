@@ -38,9 +38,12 @@ from sklearn.metrics import f1_score
 from nltk import word_tokenize          
 from nltk.stem.porter import PorterStemmer
 
+#Testing
+from sklearn.preprocessing import MinMaxScaler
+
 #Stemming
 stemmer = PorterStemmer()
-analyzer = CountVectorizer(stop_words='english').build_analyzer()
+analyzer = CountVectorizer().build_analyzer()
 #nltk.download('punkt')
 
 def stemmed_words(doc):
@@ -165,16 +168,40 @@ def runFullTest(split):
         ])
         runTest(pipe, split, "alpha = " + str(a))
 
+def metrics(data):
+    vec = CountVectorizer()
+    res = vec.fit_transform(data.data)
+    print('Unique terms: ' + str(len(vec.get_feature_names())))
+    #vec = CountVectorizer(stop_words='english', analyzer=stemmed_words)
+    #vec.fit_transform(data.data)
+    #print('Unique stems: ' + str(len(vec.get_feature_names())))
+    terms = res.toarray()
+    tmp = []
+    for i in range(len(terms)):
+        tmp.append(sum(terms[i]))
+    print("Avg doc length: " + str(statistics.mean(tmp)))
+    print("Min doc length: " + str(min(tmp)))
+    print("Max doc length: " + str(max(tmp)))
+
+
 if __name__ == "__main__":
 
     data = loadFiles()
+    metrics(data)
     split = splitData(data)
     proc = []
 
-    runFullTest(split)
+    #runFullTest(split)
 
     #My test pipelines 
+    #model tuning, add bi grams and tri grams
     '''
+    pipe = Pipeline([
+        ('vect', extraction.CountVectorizer(stop_words='english')),
+        ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.1)),
+        ('clf', neural.MLPClassifier(batch_size=200, solver='adam',early_stopping=True, max_iter=400, learning_rate='adaptive', activation='relu', hidden_layer_sizes=(100,))),
+    ])
+    runTest(pipe, split, "")
     pipe = Pipeline([
         ('vect', extraction.CountVectorizer(stop_words='english')),
         ('tfid', extraction.TfidfTransformer()),
