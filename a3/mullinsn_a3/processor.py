@@ -185,9 +185,8 @@ def metrics(data):
 
 
 if __name__ == "__main__":
-
     data = loadFiles()
-    metrics(data)
+    #metrics(data)
     split = splitData(data)
     proc = []
 
@@ -195,6 +194,7 @@ if __name__ == "__main__":
 
     #My test pipelines 
     #model tuning, add bi grams and tri grams
+    
     '''
     pipe = Pipeline([
         ('vect', extraction.CountVectorizer(stop_words='english')),
