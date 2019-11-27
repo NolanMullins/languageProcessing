@@ -63,8 +63,6 @@ def verify(pipe, vSet):
     score = f1_score(vSet['score'], predicted, average='weighted')
     print("FScore on validation set: " + str(score))
 
-
-#todo set stratified
 def crossValidate(pipe, trainingSet):
     cv = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
     pipe.fit(trainingSet['data'], trainingSet['score'])
@@ -168,13 +166,19 @@ def runFullTest(split):
         ])
         runTest(pipe, split, "alpha = " + str(a))
 
+# prints out metrics related to the corpus
 def metrics(data):
+    #tokens
     vec = CountVectorizer()
     res = vec.fit_transform(data.data)
     print('Unique terms: ' + str(len(vec.get_feature_names())))
-    #vec = CountVectorizer(stop_words='english', analyzer=stemmed_words)
-    #vec.fit_transform(data.data)
-    #print('Unique stems: ' + str(len(vec.get_feature_names())))
+
+    #stem info
+    vec = CountVectorizer(stop_words='english', analyzer=stemmed_words)
+    vec.fit_transform(data.data)
+    print('Unique stems: ' + str(len(vec.get_feature_names())))
+
+    #doc length
     terms = res.toarray()
     tmp = []
     for i in range(len(terms)):
@@ -183,10 +187,24 @@ def metrics(data):
     print("Min doc length: " + str(min(tmp)))
     print("Max doc length: " + str(max(tmp)))
 
+    sentCount = []
+    for i in range(0, 2000):
+        sentCount.append(len(data.data[i].split('\n')))
+
+    print("Avg doc sentence count: " + str(statistics.mean(sentCount)))
+    print("Min doc sentence count: " + str(min(sentCount)))
+    print("Max doc sentence count: " + str(max(sentCount)))
+
+    wordsPerSent = []
+    for i in range(0, 2000):
+        wordsPerSent.append(tmp[i]/sentCount[i])
+
+    print("Avg sentence length: " + str(statistics.mean(wordsPerSent)))
+
 
 if __name__ == "__main__":
     data = loadFiles()
-    #metrics(data)
+    metrics(data)
     split = splitData(data)
     proc = []
 
@@ -194,7 +212,19 @@ if __name__ == "__main__":
 
     #My test pipelines 
     #model tuning, add bi grams and tri grams
-    
+    pipe = Pipeline([
+        ('vect', extraction.CountVectorizer(stop_words='english')),
+        ('chi2', fSelection.SelectFpr(fSelection.chi2, alpha=.01)),
+        ('clf', neural.MLPClassifier(batch_size=200, solver='adam',early_stopping=True, max_iter=400, learning_rate='adaptive', activation='relu', hidden_layer_sizes=(100,))),
+    ])
+    runTest(pipe, split, "") 
+
+    pipe = Pipeline([
+        ('vect', extraction.CountVectorizer(stop_words='english')),
+        ('chi2', fSelection.SelectFpr(fSelection.f_classif, alpha=.01)),
+        ('clf', neural.MLPClassifier(batch_size=200, solver='adam',early_stopping=True, max_iter=400, learning_rate='adaptive', activation='relu', hidden_layer_sizes=(100,))),
+    ])
+    runTest(pipe, split, "") 
     '''
     pipe = Pipeline([
         ('vect', extraction.CountVectorizer(stop_words='english')),
